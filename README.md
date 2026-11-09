@@ -64,8 +64,8 @@ streamlit run app.py
 
 👨‍💻 Author
 
-Krishna Gupta
-GitHub: https://github.com/krishnag5465
+Arka Chatterjee
+GitHub: github.com/ArkaChatterjee20
 
 📬 Contact
 
