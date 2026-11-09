@@ -1,0 +1,9 @@
+﻿# Streamlit frontend
+streamlit>=1.45.0
+pandas>=2.2.2
+
+# Machine learning models
+numpy
+scikit-learn==1.7.1
+xgboost
+joblib

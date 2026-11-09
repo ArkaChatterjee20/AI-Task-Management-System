@@ -1,0 +1,382 @@
+import streamlit as st
+import requests
+import pandas as pd
+st.set_page_config(
+    page_title="ML Predictions",
+    page_icon="🤖",
+)
+
+st.title("🤖 ML Predictions & Analytics")
+
+# FastAPI backend URL
+API_URL = "http://127.0.0.1:8001"
+
+
+# -----------------------------------
+# Generate ML Predictions
+# -----------------------------------
+
+st.subheader("Generate ML Predictions")
+
+st.write(
+    "Load task features from Snowflake and generate predictions using the ML model."
+)
+
+if st.button("Generate Predictions"):
+
+    with st.spinner("Generating predictions..."):
+
+        try:
+            response = requests.get(
+                f"{API_URL}/ml/predictions",
+                timeout=300
+            )
+
+            response.raise_for_status()
+
+            data = response.json()
+
+            st.success(
+                f"Successfully generated {data['total_predictions']} predictions!"
+            )
+
+            # Show predictions
+            st.json(data["predictions"][:10])
+
+        except requests.exceptions.RequestException as e:
+            st.error(f"API Error: {e}")
+
+
+# -----------------------------------
+# ML Analytics
+# -----------------------------------
+
+st.divider()
+
+st.subheader("📊 Prediction Analytics")
+
+if st.button("Load Analytics"):
+
+    with st.spinner("Loading analytics..."):
+
+        try:
+            response = requests.get(
+                f"{API_URL}/ml/analytics",
+                timeout=60
+            )
+
+            response.raise_for_status()
+
+            data = response.json()
+
+            analytics = data["analytics"]
+
+            # Metrics
+            col1, col2, col3, col4 = st.columns(4)
+
+            col1.metric(
+                "Total Predictions",
+                analytics["total_predictions"]
+            )
+
+            col2.metric(
+                "Done",
+                analytics["done_predictions"]
+            )
+
+            col3.metric(
+                "Not Done",
+                analytics["not_done_predictions"]
+            )
+
+            col4.metric(
+                "Completion %",
+                f"{analytics['completion_percentage']}%"
+            )
+
+            # Prediction chart
+            st.subheader("📊 Prediction Status Distribution")
+
+            chart_data = pd.DataFrame({
+                "Status": ["Done", "Not Done"],
+                "Predictions": [
+                    analytics["done_predictions"],
+                    analytics["not_done_predictions"]
+                ]
+            })
+
+            st.bar_chart(
+                chart_data.set_index("Status")
+            )
+
+        except requests.exceptions.RequestException as e:
+            st.error(f"API Error: {e}")
+
+        except Exception as e:
+            st.error(f"Unexpected Error: {e}")
+def load_prediction_history(limit=100):
+    
+    try:
+        response = requests.get(
+            f"{API_URL}/ml/recent-predictions",
+            params={"limit": limit},
+            timeout=60
+        )
+
+        response.raise_for_status()
+
+        return response.json()
+
+    except requests.exceptions.RequestException as e:
+        st.error(f"Prediction History API Error: {e}")
+        return None
+
+
+st.divider()
+
+st.header("📜 Prediction History")
+
+limit = st.selectbox(
+    "Number of recent predictions",
+    [10, 25, 50, 100, 200, 500, 1000],
+    index=3
+)
+
+if st.button("Load Prediction History"):
+
+    result = load_prediction_history(limit)
+
+    if result:
+
+        predictions = result["predictions"]
+
+        if predictions:
+
+            df_history = pd.DataFrame(predictions)
+
+            st.success(
+                f"Loaded {len(df_history)} prediction records"
+            )
+
+            st.dataframe(
+                df_history,
+                use_container_width=True,
+                hide_index=True
+            )
+
+            csv = df_history.to_csv(index=False).encode("utf-8")
+
+            st.download_button(
+                label="Download Prediction History",
+                data=csv,
+                file_name="prediction_history.csv",
+                mime="text/csv"
+            )
+
+        else:
+            st.info("No prediction history available.")
+
+# -----------------------------------
+# Prediction Run Monitoring
+# -----------------------------------
+
+st.divider()
+
+st.header("📊 Prediction Run Monitoring")
+
+st.write(
+    "Monitor previous ML prediction executions "
+    "and inspect their individual prediction records."
+)
+
+
+def load_prediction_runs(limit=20):
+
+    try:
+        response = requests.get(
+            f"{API_URL}/ml/prediction-runs",
+            params={"limit": limit},
+            timeout=60
+        )
+
+        response.raise_for_status()
+
+        return response.json()
+
+    except requests.exceptions.RequestException as e:
+        st.error(f"Prediction Runs API Error: {e}")
+        return None
+
+
+def load_prediction_run_details(run_id):
+
+    try:
+        response = requests.get(
+            f"{API_URL}/ml/prediction-runs/{run_id}",
+            timeout=60
+        )
+
+        response.raise_for_status()
+
+        return response.json()
+
+    except requests.exceptions.RequestException as e:
+        st.error(f"Run Details API Error: {e}")
+        return None
+
+
+def load_run_history(run_id, limit=100):
+
+    try:
+        response = requests.get(
+            f"{API_URL}/ml/prediction-runs/{run_id}/history",
+            params={"limit": limit},
+            timeout=60
+        )
+
+        response.raise_for_status()
+
+        return response.json()
+
+    except requests.exceptions.RequestException as e:
+        st.error(f"Run History API Error: {e}")
+        return None
+
+
+# Load prediction runs
+
+run_limit = st.selectbox(
+    "Number of prediction runs",
+    [5, 10, 20, 50, 100],
+    index=2,
+    key="run_limit"
+)
+
+if st.button("Load Prediction Runs"):
+
+    with st.spinner("Loading prediction runs..."):
+
+        result = load_prediction_runs(run_limit)
+
+        if result is not None:
+
+            st.session_state["prediction_runs"] = result["runs"]
+
+            st.success(
+                f"Loaded {result['total_runs']} prediction runs."
+            )
+
+
+# Display available runs
+
+runs = st.session_state.get("prediction_runs", [])
+
+if runs:
+
+    st.subheader("Prediction Run History")
+
+    runs_df = pd.DataFrame(runs)
+
+    st.dataframe(
+        runs_df,
+        use_container_width=True,
+        hide_index=True
+    )
+
+    # Select a specific run
+
+    run_ids = [run["RUN_ID"] for run in runs]
+
+    selected_run_id = st.selectbox(
+        "Select Prediction Run ID",
+        run_ids,
+        key="selected_run_id"
+    )
+
+    if st.button("View Run Details"):
+
+        with st.spinner("Loading selected prediction run..."):
+
+            details = load_prediction_run_details(
+                selected_run_id
+            )
+
+            history = load_run_history(
+                selected_run_id,
+                limit=1000
+            )
+
+            if details is not None:
+
+                st.subheader("Selected Run Details")
+
+                col1, col2, col3 = st.columns(3)
+
+                col1.metric(
+                    "Total Predictions",
+                    details["TOTAL_PREDICTIONS"]
+                )
+
+                col2.metric(
+                    "Run Status",
+                    details["RUN_STATUS"]
+                )
+
+                col3.metric(
+                    "Run ID",
+                    details["RUN_ID"][:8] + "..."
+                )
+
+                st.write(
+                    "**Started At:**",
+                    details["STARTED_AT"]
+                )
+
+                st.write(
+                    "**Completed At:**",
+                    details["COMPLETED_AT"]
+                )
+
+            if history is not None:
+
+                predictions = history["predictions"]
+
+                st.subheader("Predictions for Selected Run")
+
+                if predictions:
+
+                    history_df = pd.DataFrame(predictions)
+
+                    st.success(
+                        f"Loaded {len(history_df)} predictions."
+                    )
+
+                    st.dataframe(
+                        history_df,
+                        use_container_width=True,
+                        hide_index=True
+                    )
+
+                    csv = history_df.to_csv(
+                        index=False
+                    ).encode("utf-8")
+
+                    st.download_button(
+                        label="Download Run History",
+                        data=csv,
+                        file_name=f"prediction_run_{selected_run_id}.csv",
+                        mime="text/csv"
+                    )
+
+                else:
+
+                    st.info(
+                        "No prediction records found for this run."
+                    )
+
+else:
+
+    st.info(
+        "Click 'Load Prediction Runs' to retrieve prediction run history."
+    )
+

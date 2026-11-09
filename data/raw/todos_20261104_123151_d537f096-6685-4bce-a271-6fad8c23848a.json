@@ -1,0 +1,14 @@
+{
+    "batch_id": "d537f096-6685-4bce-a271-6fad8c23848a",
+    "extracted_at": "2026-11-04T12:31:51.517738+00:00",
+    "source": "JSONPlaceholder API /todos",
+    "record_count": 1,
+    "data": [
+        {
+            "userId": 1,
+            "id": 101,
+            "title": "Test task",
+            "completed": false
+        }
+    ]
+}

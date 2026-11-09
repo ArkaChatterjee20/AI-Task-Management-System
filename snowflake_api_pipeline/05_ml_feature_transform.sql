@@ -1,0 +1,40 @@
+MERGE INTO AI_TASK_MANAGEMENT_DB.FEATURES.TASK_TEXT_FEATURES AS target
+
+USING (
+    SELECT
+        TASK_ID,
+        USER_ID,
+        TASK_TITLE,
+        IS_COMPLETED,
+        EXTRACTED_AT,
+        CURRENT_TIMESTAMP() AS FEATURE_CREATED_AT
+    FROM AI_TASK_MANAGEMENT_DB.STAGING.TASKS_STAGING
+) AS source
+
+ON target.TASK_ID = source.TASK_ID
+
+WHEN MATCHED THEN
+    UPDATE SET
+        USER_ID = source.USER_ID,
+        TASK_TITLE = source.TASK_TITLE,
+        IS_COMPLETED = source.IS_COMPLETED,
+        EXTRACTED_AT = source.EXTRACTED_AT,
+        FEATURE_CREATED_AT = source.FEATURE_CREATED_AT
+
+WHEN NOT MATCHED THEN
+    INSERT (
+        TASK_ID,
+        USER_ID,
+        TASK_TITLE,
+        IS_COMPLETED,
+        EXTRACTED_AT,
+        FEATURE_CREATED_AT
+    )
+    VALUES (
+        source.TASK_ID,
+        source.USER_ID,
+        source.TASK_TITLE,
+        source.IS_COMPLETED,
+        source.EXTRACTED_AT,
+        source.FEATURE_CREATED_AT
+    );

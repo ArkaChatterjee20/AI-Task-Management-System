@@ -1,6 +1,23 @@
-priority_model.pkl
-*.csv
-*.xls
-*.xlsx
+# Environment files
+.env
+.env.*
+!.env.example
 
-.ipynb_checkpoints/
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# NLTK downloaded data
+nltk_data/
+nltk_data_minimal/
+
+# Backup files
+*.bak
+
+# IDE
+.vscode/
+
+# Secrets
+.streamlit/secrets.toml

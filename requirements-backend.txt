@@ -1,0 +1,23 @@
+﻿# FastAPI application
+fastapi
+uvicorn[standard]
+
+# Machine learning - SVM prediction
+scikit-learn==1.7.1
+nltk
+
+# PostgreSQL database
+SQLAlchemy>=2.0,<3.0
+psycopg2-binary>=2.9,<3.0
+
+# Snowflake ELT pipeline
+snowflake-connector-python
+
+# Environment and API utilities
+python-dotenv
+requests
+
+# Authentication and validation
+pwdlib[argon2]>=0.3.0,<1.0
+PyJWT>=2.10,<3.0
+email-validator>=2.0,<3.0

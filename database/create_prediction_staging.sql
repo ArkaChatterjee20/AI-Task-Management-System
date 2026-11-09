@@ -1,0 +1,22 @@
+
+-- =====================================================
+-- AI TASK MANAGEMENT SYSTEM
+-- Prediction Staging Table
+-- =====================================================
+
+CREATE TABLE IF NOT EXISTS
+AI_TASK_MANAGEMENT_DB.FEATURES.TASK_PREDICTION_STAGING (
+
+    RUN_ID VARCHAR(100) NOT NULL,
+
+    TASK_ID NUMBER(38,0) NOT NULL,
+
+    TASK_TITLE VARCHAR(16777216) NOT NULL,
+
+    PREDICTION NUMBER(38,0) NOT NULL,
+
+    PREDICTED_STATUS VARCHAR(16777216) NOT NULL,
+
+    STAGED_AT TIMESTAMP_NTZ(9)
+        DEFAULT CURRENT_TIMESTAMP()
+);
