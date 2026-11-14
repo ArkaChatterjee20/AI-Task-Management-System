@@ -134,3 +134,31 @@ def predict_tasks(tasks):
         for batch in predict_tasks_in_batches(tasks)
         for prediction in batch
     ]
+def predict_single_task(task_title: str):
+    """
+    Predict the completion status of a single task.
+    Uses the existing TF-IDF vectorizer and SVM model.
+    """
+
+    if not task_title or not task_title.strip():
+        raise ValueError("Task title cannot be empty.")
+
+    vectorizer, model = load_ml_components()
+
+    processed_text = preprocess_text(task_title)
+
+    features = vectorizer.transform([processed_text])
+
+    prediction = int(model.predict(features)[0])
+
+    predicted_status = (
+        "Done"
+        if prediction == 1
+        else "Not Done"
+    )
+
+    return {
+        "task_title": task_title.strip(),
+        "prediction": prediction,
+        "predicted_status": predicted_status,
+    }

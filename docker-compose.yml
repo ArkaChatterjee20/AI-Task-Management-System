@@ -3,13 +3,20 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-
     container_name: ai-task-api
-
     env_file:
       - .env
-
     ports:
       - "8001:8000"
+    restart: unless-stopped
 
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend.Dockerfile
+    container_name: ai-task-frontend
+    ports:
+      - "8501:8501"
+    depends_on:
+      - api
     restart: unless-stopped

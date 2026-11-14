@@ -1,10 +1,17 @@
-import streamlit as st
-import joblib
-import xgboost
 
-model = joblib.load("task_model.pkl")   # your file already exists
+import os
+import requests
+import streamlit as st
+
+# ---------------- CONFIGURATION ----------------
+
+API_BASE_URL = os.getenv(
+    "API_BASE_URL",
+    "http://api:8000"
+).rstrip("/")
 
 # ---------------- PAGE CONFIG ----------------
+
 st.set_page_config(
     page_title="AI Task Manager",
     page_icon="🚀",
@@ -12,6 +19,7 @@ st.set_page_config(
 )
 
 # ---------------- CUSTOM CSS ----------------
+
 st.markdown("""
 <style>
 body {
@@ -39,10 +47,18 @@ body {
 """, unsafe_allow_html=True)
 
 # ---------------- HEADER ----------------
-st.markdown('<div class="big-title">🚀 AI Task Management System</div>', unsafe_allow_html=True)
-st.write("Automate task classification, prioritization, and assignment")
+
+st.markdown(
+    '<div class="big-title">🚀 AI Task Management System</div>',
+    unsafe_allow_html=True
+)
+
+st.write(
+    "Automate task classification, prioritization, and assignment"
+)
 
 # ---------------- SESSION TEAM ----------------
+
 if "team" not in st.session_state:
     st.session_state.team = {
         "Alice": 4,
@@ -50,98 +66,191 @@ if "team" not in st.session_state:
         "Charlie": 2
     }
 
+
 def assign_task():
     team = st.session_state.team
+
     person = min(team, key=team.get)
+
     team[person] += 1
+
     return person
 
+
 # ---------------- SIDEBAR ----------------
+
 st.sidebar.title("⚙️ Team Settings")
 
 for member in st.session_state.team:
     st.session_state.team[member] = st.sidebar.slider(
         f"{member} workload",
-        0, 10,
+        0,
+        10,
         st.session_state.team[member]
     )
 
+
 # ---------------- INPUT SECTION ----------------
+
 st.markdown("### 📌 Enter Task Details")
 
-col1, col2 = st.columns([2,1])
+col1, col2 = st.columns([2, 1])
 
 with col1:
-    task = st.text_area("📝 Task Description", placeholder="e.g. Book flight tickets")
+    task = st.text_area(
+        "📝 Task Description",
+        placeholder="e.g. Complete machine learning project"
+    )
 
 with col2:
-    deadline = st.slider("⏳ Deadline (days)", 1, 10, 3)
+    deadline = st.slider(
+        "⏳ Deadline (days)",
+        1,
+        10,
+        3
+    )
 
-# ---------------- BUTTON ----------------
+
+# ---------------- PREDICTION ----------------
+
 if st.button("🔍 Analyze Task", use_container_width=True):
 
     if not task.strip():
-        st.warning("⚠️ Please enter a task")
+
+        st.warning("⚠️ Please enter a task description.")
+
     else:
-        # -------- DUMMY LOGIC (REPLACE WITH MODEL LATER) --------
-        task_lower = task.lower()
 
-        if "gym" in task_lower or "exercise" in task_lower:
-            category = "Health & Wellness"
-        elif "flight" in task_lower or "travel" in task_lower:
-            category = "Travel"
-        elif "bill" in task_lower or "pay" in task_lower:
-            category = "Finance"
-        else:
-            category = "Personal"
+        try:
+            with st.spinner("Connecting to ML prediction API..."):
 
-        if deadline <= 2:
-            priority = "High"
-        elif deadline <= 5:
-            priority = "Medium"
-        else:
-            priority = "Low"
+                response = requests.post(
+                    f"{API_BASE_URL}/ml/predict-task",
+                    json={
+                        "task_title": task.strip()
+                    },
+                    timeout=30
+                )
 
-        assigned = assign_task()
+                response.raise_for_status()
 
-        st.success("✅ Task Processed Successfully!")
+                result = response.json()["prediction"]
 
-        # ---------------- OUTPUT CARDS ----------------
-        col1, col2, col3 = st.columns(3)
+                predicted_status = result["predicted_status"]
+                prediction_value = result["prediction"]
 
-        with col1:
-            st.markdown(f"""
-            <div class="card">
-                <div class="metric">📂 Category</div>
-                <h2>{category}</h2>
-            </div>
-            """, unsafe_allow_html=True)
+            # -------- CATEGORY LOGIC --------
 
-        with col2:
-            st.markdown(f"""
-            <div class="card">
-                <div class="metric">🔥 Priority</div>
-                <h2>{priority}</h2>
-            </div>
-            """, unsafe_allow_html=True)
+            task_lower = task.lower()
 
-        with col3:
-            st.markdown(f"""
-            <div class="card">
-                <div class="metric">👨‍💻 Assigned To</div>
-                <h2>{assigned}</h2>
-            </div>
-            """, unsafe_allow_html=True)
+            if "gym" in task_lower or "exercise" in task_lower:
+                category = "Health & Wellness"
+
+            elif "flight" in task_lower or "travel" in task_lower:
+                category = "Travel"
+
+            elif "bill" in task_lower or "pay" in task_lower:
+                category = "Finance"
+
+            else:
+                category = "Personal"
+
+            # -------- PRIORITY LOGIC --------
+
+            if deadline <= 2:
+                priority = "High"
+
+            elif deadline <= 5:
+                priority = "Medium"
+
+            else:
+                priority = "Low"
+
+            # -------- TEAM ASSIGNMENT --------
+
+            assigned = assign_task()
+
+            # -------- DISPLAY RESULTS --------
+
+            st.success("✅ Task analyzed successfully using FastAPI!")
+
+            col1, col2, col3, col4 = st.columns(4)
+
+            with col1:
+                st.metric(
+                    "Category",
+                    category
+                )
+
+            with col2:
+                st.metric(
+                    "ML Predicted Status",
+                    predicted_status
+                )
+
+            with col3:
+                st.metric(
+                    "Priority",
+                    priority
+                )
+
+            with col4:
+                st.metric(
+                    "Assigned To",
+                    assigned
+                )
+
+            st.caption(
+                f"SVM prediction value: {prediction_value}"
+            )
+
+        except requests.exceptions.Timeout:
+
+            st.error(
+                "The prediction API timed out. Please try again."
+            )
+
+        except requests.exceptions.ConnectionError:
+
+            st.error(
+                "Cannot connect to FastAPI. "
+                "Please check whether the API container is running."
+            )
+
+        except requests.exceptions.HTTPError as error:
+
+            st.error(
+                f"Prediction API returned an HTTP error: {error}"
+            )
+
+        except (KeyError, ValueError):
+
+            st.error(
+                "The prediction API returned an unexpected response."
+            )
+
+        except requests.exceptions.RequestException as error:
+
+            st.error(
+                f"API request failed: {error}"
+            )
+
 
 # ---------------- TEAM WORKLOAD ----------------
+
 st.markdown("### 📊 Team Workload")
 
 for member, tasks in st.session_state.team.items():
+
     st.progress(tasks / 10)
+
     st.write(f"{member}: {tasks} tasks")
 
+
 # ---------------- FOOTER ----------------
+
 st.markdown("---")
-st.markdown("💡 Built with Streamlit | Advanced UI Version")
-model = joblib.load("final_model.pkl")
-category = model.predict([task])[0]
+
+st.markdown(
+    "💡 Built with Streamlit, FastAPI and Machine Learning"
+)

@@ -1,40 +1,39 @@
+﻿# Git
+.git/
+.gitignore
 
-# Python virtual environment
+# Python virtual environments and caches
 .venv/
 venv/
 env/
-
-# Python cache
 __pycache__/
 *.py[cod]
 *$py.class
 
-# Git
-.git/
-.gitignore
-
-# Environment and secrets
+# Environment files and secrets
 .env
 .env.*
 !.env.example
+.streamlit/secrets.toml
 
-# Test and coverage artifacts
+# NLTK downloaded data (keep nltk_data_minimal)
+nltk_data/
+
+# Development and editor files
+.vscode/
+.idea/
 .pytest_cache/
 .coverage
 htmlcov/
 
-# IDE files
-.vscode/
-.idea/
-
-# Logs
+# Logs and temporary files
 *.log
+*.tmp
+*.bak
 
-# Raw data
+# Local-only content
 data/raw/
-
-# OS files
+Screenshots/
+*.ipynb
 .DS_Store
 Thumbs.db
-nltk_data/
-!nltk_data_minimal/

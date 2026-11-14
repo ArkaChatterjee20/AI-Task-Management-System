@@ -1,20 +1,23 @@
 
 from datetime import datetime
-
 from sqlalchemy import (
     BigInteger,
     Boolean,
     CheckConstraint,
     DateTime,
+    Float,
     ForeignKey,
     Index,
     Identity,
+    Integer,
     String,
     Text,
     UniqueConstraint,
     desc,
     func,
+    text
 )
+
 from sqlalchemy.orm import Mapped, mapped_column
 
 from fastapi_backend.database import Base
@@ -94,7 +97,7 @@ class TaskDB(Base):
     is_completed: Mapped[bool] = mapped_column(
         Boolean,
         nullable=False,
-        server_default=func.false(),
+        server_default=text("false"),
     )
 
     created_at: Mapped[datetime] = mapped_column(
@@ -148,4 +151,101 @@ class ExternalTask(Base):
         DateTime(timezone=True),
         nullable=False,
         server_default=func.now(),
+    )
+
+# =====================================================
+# 4. ELT PIPELINE EXECUTION HISTORY
+# =====================================================
+
+class ELTPipelineRun(Base):
+    __tablename__ = "elt_pipeline_runs"
+
+    __table_args__ = (
+        Index(
+            "idx_elt_pipeline_runs_started_at",
+            desc("started_at"),
+            desc("id"),
+        ),
+        Index(
+            "idx_elt_pipeline_runs_status",
+            "status",
+        ),
+        CheckConstraint(
+            "status IN ('RUNNING', 'SUCCESS', "
+            "'NO_NEW_RECORDS', 'FAILED')",
+            name="chk_elt_pipeline_status",
+        ),
+        CheckConstraint(
+            "duration_seconds IS NULL OR duration_seconds >= 0",
+            name="chk_elt_pipeline_duration",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(
+        BigInteger,
+        Identity(always=True),
+        primary_key=True,
+    )
+
+    batch_id: Mapped[str | None] = mapped_column(
+        String(100),
+        nullable=True,
+    )
+
+    status: Mapped[str] = mapped_column(
+        String(30),
+        nullable=False,
+        server_default="RUNNING",
+    )
+
+    extracted_records: Mapped[int | None] = mapped_column(
+        Integer,
+        nullable=True,
+    )
+
+    previously_processed: Mapped[int | None] = mapped_column(
+        Integer,
+        nullable=True,
+    )
+
+    batch_duplicates: Mapped[int | None] = mapped_column(
+        Integer,
+        nullable=True,
+    )
+
+    new_records: Mapped[int | None] = mapped_column(
+        Integer,
+        nullable=True,
+    )
+
+    loaded_records: Mapped[int | None] = mapped_column(
+        Integer,
+        nullable=True,
+    )
+
+    recovered_batch: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        server_default=text("false"),
+    )
+
+    started_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
+
+    completed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+
+    duration_seconds: Mapped[float | None] = mapped_column(
+        Float,
+        nullable=True,
+    )
+
+    error_message: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True,
     )

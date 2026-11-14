@@ -48,3 +48,56 @@ CREATE INDEX IF NOT EXISTS idx_tasks_user_created
 -- Efficient external task lookup by source user
 CREATE INDEX IF NOT EXISTS idx_external_tasks_source_user
     ON external_tasks(source_user_id);
+
+-- =====================================================
+-- 5. ELT PIPELINE EXECUTION HISTORY
+-- =====================================================
+
+CREATE TABLE IF NOT EXISTS elt_pipeline_runs (
+
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+
+    batch_id VARCHAR(100),
+
+    status VARCHAR(30) NOT NULL DEFAULT 'RUNNING',
+
+    extracted_records INTEGER,
+    previously_processed INTEGER,
+    batch_duplicates INTEGER,
+    new_records INTEGER,
+    loaded_records INTEGER,
+
+    recovered_batch BOOLEAN NOT NULL DEFAULT FALSE,
+
+    started_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    completed_at TIMESTAMPTZ,
+
+    duration_seconds DOUBLE PRECISION,
+
+    error_message TEXT,
+
+    CONSTRAINT chk_elt_pipeline_status
+        CHECK (
+            status IN (
+                'RUNNING',
+                'SUCCESS',
+                'NO_NEW_RECORDS',
+                'FAILED'
+            )
+        ),
+
+    CONSTRAINT chk_elt_pipeline_duration
+        CHECK (
+            duration_seconds IS NULL
+            OR duration_seconds >= 0
+        )
+);
+
+-- Efficient retrieval of recent pipeline executions
+CREATE INDEX IF NOT EXISTS idx_elt_pipeline_runs_started_at
+    ON elt_pipeline_runs(started_at DESC, id DESC);
+
+-- Efficient status-based monitoring
+CREATE INDEX IF NOT EXISTS idx_elt_pipeline_runs_status
+    ON elt_pipeline_runs(status);

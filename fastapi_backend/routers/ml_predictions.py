@@ -5,8 +5,6 @@ import time
 from fastapi import APIRouter, HTTPException, Query
 
 from fastapi_backend.ml.feature_loader import iter_task_features
-from fastapi_backend.ml.predictor import predict_tasks_in_batches
-
 from fastapi_backend.services.prediction_loader import (
     save_predictions_in_batches,
 )
@@ -26,6 +24,12 @@ from fastapi_backend.services.prediction_history import (
     get_prediction_run,
     get_prediction_history_paginated,
 )
+from pydantic import BaseModel, Field
+
+from fastapi_backend.ml.predictor import (
+    predict_tasks_in_batches,
+    predict_single_task,
+)
 
 
 router = APIRouter(
@@ -36,6 +40,42 @@ router = APIRouter(
 logger = logging.getLogger(__name__)
 
 BATCH_SIZE = 1000
+class SingleTaskPredictionRequest(BaseModel):
+    task_title: str = Field(
+        min_length=1,
+        max_length=500,
+        description="Task description to classify",
+    )
+@router.post("/predict-task")
+def predict_single_task_endpoint(
+    request: SingleTaskPredictionRequest,
+):
+    try:
+        if not request.task_title.strip():
+            raise HTTPException(
+                status_code=422,
+                detail="Task title cannot be empty.",
+            )
+
+        result = predict_single_task(
+            request.task_title
+        )
+
+        return {
+            "status": "success",
+            "prediction": result,
+        }
+
+    except HTTPException:
+        raise
+
+    except Exception:
+        logger.exception("Single task prediction failed")
+
+        raise HTTPException(
+            status_code=500,
+            detail="Could not predict task status",
+        )
 
 
 @router.post("/predictions")
