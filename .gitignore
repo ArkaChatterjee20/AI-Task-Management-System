@@ -21,3 +21,7 @@ nltk_data_minimal/
 
 # Secrets
 .streamlit/secrets.toml
+# Local backup and AWS deployment configuration
+app_backup.py
+ecs-db-init-overrides.json
+frontend-task-definition.json
