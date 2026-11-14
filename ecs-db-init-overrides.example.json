@@ -1,0 +1,12 @@
+{
+  "containerOverrides": [
+    {
+      "name": "ai-task-api",
+      "command": [
+        "python",
+        "-c",
+        "import fastapi_backend.db_models; from fastapi_backend.database import Base, engine; Base.metadata.create_all(bind=engine); print('Database tables initialized')"
+      ]
+    }
+  ]
+}

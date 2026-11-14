@@ -1,0 +1,37 @@
+﻿{
+    "family":  "ai-task-frontend-task",
+    "networkMode":  "awsvpc",
+    "requiresCompatibilities":  [
+                                    "FARGATE"
+                                ],
+    "cpu":  "512",
+    "memory":  "2048",
+    "executionRoleArn":  "arn:aws:iam::\u003cAWS_ACCOUNT_ID\u003e:role/\u003cECS_TASK_EXECUTION_ROLE\u003e",
+    "containerDefinitions":  [
+                                 {
+                                     "name":  "ai-task-frontend",
+                                     "image":  "\u003cAWS_ACCOUNT_ID\u003e.dkr.ecr.\u003cAWS_REGION\u003e.amazonaws.com/\u003cECR_REPOSITORY\u003e:\u003cIMAGE_TAG\u003e",
+                                     "essential":  true,
+                                     "portMappings":  [
+                                                          {
+                                                              "containerPort":  8501,
+                                                              "protocol":  "tcp"
+                                                          }
+                                                      ],
+                                     "environment":  [
+                                                         {
+                                                             "name":  "API_BASE_URL",
+                                                             "value":  "http://\u003cALB_DNS_NAME\u003e"
+                                                         }
+                                                     ],
+                                     "logConfiguration":  {
+                                                              "logDriver":  "awslogs",
+                                                              "options":  {
+                                                                              "awslogs-group":  "/ecs/\u003cECS_LOG_GROUP\u003e",
+                                                                              "awslogs-region":  "\u003cAWS_REGION\u003e",
+                                                                              "awslogs-stream-prefix":  "frontend"
+                                                                          }
+                                                          }
+                                 }
+                             ]
+}
