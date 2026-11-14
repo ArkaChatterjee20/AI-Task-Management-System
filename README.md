@@ -1,74 +1,153 @@
-# AI Powered Task Management System
+# AI Task Management System
 
-## 🚀 Live Demo
-Streamlit App: https://ai-task-management-system-hqf5fmzvtdpha8dyh2vmhn.streamlit.app/
-## 📌 Project Overview
-AI Powered Task Management System is a Machine Learning based web application that helps users manage and prioritize tasks intelligently. The system predicts task categories and priorities using trained ML models and provides an interactive web interface using Streamlit.
+An AI-powered task management platform combining machine learning, data engineering, and cloud deployment. The application provides a Streamlit interface, FastAPI backend, ML-powered task predictions, and an ELT pipeline integrated with cloud data services.
 
-## ✨ Features
-- Smart Task Prediction
-- AI-based Priority Detection
-- User Friendly Interface
-- Machine Learning Integration
-- Real-time Predictions
-- Streamlit Web Application
+## 🚀 Live Application
 
-## 🛠️ Tech Stack
-- Python
-- Streamlit
-- Scikit-learn
-- XGBoost
-- Pandas
-- NumPy
-- Joblib
+**[Open AI Task Management System](http://ai-task-alb-45721397.ap-south-1.elb.amazonaws.com)**
 
-## 📂 Dataset
-Dataset Link (Google Drive): https://drive.google.com/file/d/1wd8_4-NglkuWItDjRKDalJ2QuetxEE9u/view?usp=drive_link
+The application is deployed on AWS ECS Fargate and accessed through an Application Load Balancer.
 
-## 🤖 Machine Learning Models
-Included model files:
-- task_model.pkl
-- tfidf.pkl
-- model.pkl
-- final_model.pkl
-- nb_model.pkl
-- svm_model.pkl
+**[View Source Code on GitHub](https://github.com/ArkaChatterjee20/AI-Task-Management-System)**
 
-Note: `priority_model.pkl` is not included because of its very large file size.
+## ✨ Key Features
 
-## ▶️ Run Locally
+- **Task Management:** Manage and organize tasks through an interactive Streamlit application.
+- **Machine Learning:** Use a trained ML model to classify and predict task-related information.
+- **ML Analytics:** View prediction analytics and model-related insights.
+- **Prediction History:** Access previously generated ML predictions.
+- **ELT Pipeline:** Extract data from APIs, process records, handle duplicates, and load data into the target data platform.
+- **Pipeline Monitoring:** Track extraction and loading runs, processing status, and pipeline execution history.
+- **REST API:** FastAPI backend providing application and ML pipeline endpoints.
+- **Database Integration:** PostgreSQL for application data and Snowflake for data engineering workflows.
+- **Cloud Deployment:** Containerized frontend and backend deployed using AWS ECS Fargate.
 
-Go to project directory:
+## 🏗️ System Architecture
+
+The application follows a modular architecture:
+
+1. **Frontend:** Streamlit provides the user interface.
+2. **Backend:** FastAPI handles API requests, ML operations, and pipeline functionality.
+3. **Machine Learning:** Python-based ML components perform task prediction.
+4. **Database:** PostgreSQL stores application data and prediction-related records.
+5. **Data Engineering:** Python-based ELT workflows extract, transform, and load data into Snowflake.
+6. **Containerization:** Docker packages the frontend and backend services.
+7. **Cloud Infrastructure:** AWS ECS Fargate hosts the application, with an Application Load Balancer routing incoming requests.
+
+## 🛠️ Technology Stack
+
+| Category | Technologies |
+|---|---|
+| Programming | Python, SQL |
+| Frontend | Streamlit |
+| Backend | FastAPI |
+| Machine Learning | Scikit-learn, Pandas, NumPy |
+| Database | PostgreSQL |
+| Data Warehouse | Snowflake |
+| Data Engineering | Python, REST APIs, ELT |
+| Containerization | Docker, Docker Compose |
+| Cloud | AWS ECS Fargate, Amazon ECR, Application Load Balancer |
+| Version Control | Git, GitHub |
+
+## 📂 Project Documentation
+
+Detailed technical documentation is available in the `docs/` directory.
+
+| Document | Description |
+|---|---|
+| [System Architecture](docs/system-architecture.md) | Overall system architecture and component interactions |
+| [Low-Level System Design](docs/low-level-system-design.md) | Component-level design and proposed scalability considerations |
+| [ELT Pipeline Architecture](docs/elt-pipeline-architecture.md) | Data extraction, transformation, loading, and tracking |
+| [Data Architecture](docs/data-architecture.md) | Database and data flow design |
+| [Deployment Architecture](docs/deployment-architecture.md) | Docker and AWS deployment architecture |
+
+## ⚙️ Run Locally Using Docker
+
+### Prerequisites
+
+- Python 3.11
+- Docker Desktop
+- Docker Compose
+- PostgreSQL
+- Required Snowflake credentials for data warehouse functionality
+
+### 1. Clone the repository
 
 ```bash
+git clone https://github.com/ArkaChatterjee20/AI-Task-Management-System.git
 cd AI-Task-Management-System
 ```
 
-Install dependencies:
+### 2. Configure environment variables
+
+Create your local `.env` file using the example:
 
 ```bash
-pip install -r requirements.txt
+copy .env.example .env
 ```
 
-Run the Streamlit app:
+Update the environment variables with your own PostgreSQL, Snowflake, and application configuration.
+
+**Never commit your actual `.env` file or credentials to GitHub.**
+
+### 3. Build and start the application
 
 ```bash
-streamlit run app.py
+docker compose build
+docker compose up -d
 ```
-## 📸 Project Screenshot
 
-![Project Screenshot](Screenshots/Screenshot.png.png)
+### 4. Access the application
 
-![Project Screenshot](Screenshots/Screenshot2.png.png)
-![Project Screenshot](Screenshots/Screenshot3.png.png)
+| Service | Local URL |
+|---|---|
+| Streamlit Frontend | http://localhost:8501 |
+| FastAPI Backend | http://localhost:8001 |
+| FastAPI Swagger Documentation | http://localhost:8001/docs |
+| Backend Health Check | http://localhost:8001/health |
 
-👨‍💻 Author
+To stop the application:
 
-Arka Chatterjee
-GitHub: github.com/ArkaChatterjee20
+```bash
+docker compose down
+```
 
-📬 Contact
+## ☁️ AWS Deployment
 
-For any queries or collaboration opportunities, feel free to connect.
+The application is deployed using:
 
+- **Amazon ECS Fargate:** Runs the frontend and backend containers.
+- **Amazon ECR:** Stores Docker container images.
+- **Application Load Balancer:** Routes incoming traffic to the appropriate ECS service.
+- **CloudWatch Logs:** Supports container log monitoring.
+
+The deployment architecture and sanitized ECS task definition examples are available in the repository.
+
+## 📈 Scalability Considerations
+
+The system design includes considerations for supporting approximately 150 concurrent users through resource allocation, service separation, and infrastructure scaling.
+
+**Note:** This is a proposed capacity target, not a result of completed 150-user load testing.
+
+## 🔐 Security
+
+- Environment variables are used for configuration.
+- Credentials and local deployment configurations are excluded from Git.
+- Sanitized configuration templates are provided for reference.
+- Production secrets should be managed securely and never committed to source control.
+
+## 👨‍💻 Author
+
+**Arka Chatterjee**
+
+B.Tech in Information Technology | 2025
+
+Interested in Data Engineering, Machine Learning, Python, SQL, and Cloud Technologies.
+
+- GitHub: [ArkaChatterjee20](https://github.com/ArkaChatterjee20)
+
+---
+## Demo Link - http://ai-task-alb-45721397.ap-south-1.elb.amazonaws.com
+
+If you find this project interesting, consider giving the repository a ⭐ on GitHub.
 
