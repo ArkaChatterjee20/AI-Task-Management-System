@@ -45,13 +45,17 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install pytest httpx
+
       - name: Download NLTK data
         run: |
           python -m nltk.downloader -d "$HOME/nltk_data" stopwords
 
-      - name: Configure isolated test database
+      - name: Configure isolated test environment
         run: |
-          echo "TEST_DB_PASSWORD=ci_test_password" > .env.test
+          cat > .env.test <<'EOF'
+          TEST_DB_PASSWORD=ci_test_password
+          SECRET_KEY=ci-only-test-secret-key-for-github-actions-123456
+          EOF
 
       - name: Run verified unit tests
         run: |
