@@ -45,6 +45,9 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install pytest httpx
+      - name: Download NLTK data
+        run: |
+          python -m nltk.downloader -d "$HOME/nltk_data" stopwords
 
       - name: Configure isolated test database
         run: |
