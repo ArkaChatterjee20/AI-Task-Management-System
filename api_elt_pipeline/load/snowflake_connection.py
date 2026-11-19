@@ -1,3 +1,4 @@
+
 import logging
 import os
 
@@ -20,6 +21,7 @@ def get_snowflake_connection():
         "SNOWFLAKE_WAREHOUSE",
         "SNOWFLAKE_DATABASE",
         "SNOWFLAKE_SCHEMA",
+        "SNOWFLAKE_ROLE",
     ]
 
     missing_variables = [
@@ -35,7 +37,8 @@ def get_snowflake_connection():
         )
 
     logging.info(
-        "Connecting to Snowflake."
+        "Connecting to Snowflake database: %s",
+        os.getenv("SNOWFLAKE_DATABASE"),
     )
 
     connection = snowflake.connector.connect(
@@ -45,6 +48,7 @@ def get_snowflake_connection():
         warehouse=os.getenv("SNOWFLAKE_WAREHOUSE"),
         database=os.getenv("SNOWFLAKE_DATABASE"),
         schema=os.getenv("SNOWFLAKE_SCHEMA"),
+        role=os.getenv("SNOWFLAKE_ROLE"),
     )
 
     logging.info(

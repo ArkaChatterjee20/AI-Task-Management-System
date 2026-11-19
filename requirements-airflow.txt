@@ -1,0 +1,7 @@
+﻿# Snowflake ELT pipeline
+snowflake-connector-python
+python-dotenv
+requests
+
+# Airflow PostgreSQL integration
+apache-airflow-providers-postgres

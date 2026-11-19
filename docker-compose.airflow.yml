@@ -1,0 +1,178 @@
+﻿
+x-airflow-common: &airflow-common
+  build:
+    context: .
+    dockerfile: Dockerfile.airflow
+
+  image: ai-task-airflow:3.4.0
+
+  environment: &airflow-environment
+    AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+
+    AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW_FERNET_KEY:?Missing Fernet key}
+    AIRFLOW__API__SECRET_KEY: ${AIRFLOW_API_SECRET_KEY:?Missing API secret}
+
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${AIRFLOW_DB_USER}:${AIRFLOW_DB_PASSWORD}@airflow-db:5432/airflow
+
+    AIRFLOW__CORE__DAGS_FOLDER: /opt/airflow/dags
+    PYTHONPATH: /opt/airflow/project
+
+  user: "${AIRFLOW_UID:-50000}:0"
+
+  volumes:
+    - ./airflow/dags:/opt/airflow/dags
+    - ./airflow/logs:/opt/airflow/logs
+    - ./airflow/plugins:/opt/airflow/plugins
+
+
+services:
+
+  # --------------------------------------------------
+  # PostgreSQL metadata database
+  # --------------------------------------------------
+  airflow-db:
+    image: postgres:16
+
+    container_name: ai-task-airflow-db
+
+    environment:
+      POSTGRES_USER: ${AIRFLOW_DB_USER:?Missing database user}
+      POSTGRES_PASSWORD: ${AIRFLOW_DB_PASSWORD:?Missing database password}
+      POSTGRES_DB: airflow
+
+    volumes:
+      - airflow-postgres-data:/var/lib/postgresql/data
+
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"
+      interval: 10s
+      retries: 5
+      start_period: 10s
+      timeout: 5s
+
+    restart: unless-stopped
+
+
+  # --------------------------------------------------
+  # One-time Airflow database initialization
+  # --------------------------------------------------
+  airflow-init:
+    <<: *airflow-common
+
+    container_name: ai-task-airflow-init
+
+    command: >
+      bash -c "airflow db migrate"
+
+    environment:
+      <<: *airflow-environment
+
+    depends_on:
+      airflow-db:
+        condition: service_healthy
+
+    restart: "no"
+
+
+  # --------------------------------------------------
+  # Airflow API server
+  # --------------------------------------------------
+  airflow-apiserver:
+    <<: *airflow-common
+
+    container_name: ai-task-airflow-apiserver
+
+    command: api-server --host 0.0.0.0 --port 8080
+
+    environment:
+      <<: *airflow-environment
+      AIRFLOW__API_AUTH__JWT_SECRET: ${AIRFLOW_JWT_SECRET:?Missing JWT secret}
+
+    ports:
+      - "127.0.0.1:8080:8080"
+
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - --fail
+        - http://localhost:8080/api/v2/monitor/health
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+    restart: unless-stopped
+
+
+  # --------------------------------------------------
+  # Airflow scheduler
+  # --------------------------------------------------
+  airflow-scheduler:
+    <<: *airflow-common
+
+    container_name: ai-task-airflow-scheduler
+
+    command: scheduler
+
+    env_file:
+      - .env.airflow
+
+    environment:
+      <<: *airflow-environment
+
+      AIRFLOW__API_AUTH__JWT_SECRET: ${AIRFLOW_JWT_SECRET:?Missing JWT secret}
+
+      AIRFLOW__CORE__EXECUTION_API_SERVER_URL: "http://airflow-apiserver:8080/execution/"
+
+      # Isolated ELT test storage
+      ELT_DATA_DIR: /opt/airflow/test-data
+
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/logs:/opt/airflow/logs
+      - ./airflow/plugins:/opt/airflow/plugins
+      - ./:/opt/airflow/project
+
+      # Persistent storage separate from the project's data directory
+      - ./airflow/test-data:/opt/airflow/test-data
+
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+
+      airflow-apiserver:
+        condition: service_started
+
+    restart: unless-stopped
+
+
+  # --------------------------------------------------
+  # Airflow DAG processor
+  # --------------------------------------------------
+  airflow-dag-processor:
+    <<: *airflow-common
+
+    container_name: ai-task-airflow-dag-processor
+
+    command: dag-processor
+
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+
+    restart: unless-stopped
+
+
+# --------------------------------------------------
+# Persistent volumes
+# --------------------------------------------------
+volumes:
+  airflow-postgres-data:

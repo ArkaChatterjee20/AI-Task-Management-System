@@ -20,6 +20,7 @@ def make_prediction(task_id):
 def test_batch_writer_saves_multiple_batches(mock_connection):
     connection = MagicMock()
     cursor = MagicMock()
+    cursor.rowcount = 1
 
     mock_connection.return_value = connection
     connection.cursor.return_value = cursor
@@ -105,6 +106,7 @@ def test_status_update_failure_does_not_rollback_committed_data(
 ):
     connection = MagicMock()
     cursor = MagicMock()
+    cursor.rowcount = 1
 
     mock_connection.return_value = connection
     connection.cursor.return_value = cursor

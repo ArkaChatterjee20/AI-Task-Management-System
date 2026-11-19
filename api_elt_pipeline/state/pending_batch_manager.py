@@ -8,9 +8,15 @@ from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
+DATA_DIRECTORY = Path(
+    os.getenv(
+        "ELT_DATA_DIR",
+        str(PROJECT_ROOT / "data"),
+    )
+)
+
 PENDING_BATCH_FILE = (
-    PROJECT_ROOT
-    / "data"
+    DATA_DIRECTORY
     / "state"
     / "pending_batch.json"
 )

@@ -1,8 +1,7 @@
-# Environment files
 .env
 .env.*
 !.env.example
-
+!.env.airflow.example
 # Python
 __pycache__/
 *.py[cod]
@@ -25,3 +24,15 @@ nltk_data_minimal/
 app_backup.py
 ecs-db-init-overrides.json
 frontend-task-definition.json
+
+# Airflow local runtime data
+/airflow/logs/
+/airflow/test-data/
+
+# Airflow local configuration and runtime secrets
+/airflow/config/
+
+# Temporary recovery-test SQL backup
+/snowflake_api_pipeline/03_staging_transform.recovery_backup.sql
+# Local AWS Airflow deployment configuration
+airflow-block-device.json

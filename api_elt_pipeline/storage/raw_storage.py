@@ -1,6 +1,7 @@
 
 import json
 import logging
+import os
 import uuid
 
 from datetime import datetime, timezone
@@ -9,9 +10,14 @@ from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
-RAW_DATA_DIRECTORY = (
-    PROJECT_ROOT / "data" / "raw"
+DATA_DIRECTORY = Path(
+    os.getenv(
+        "ELT_DATA_DIR",
+        str(PROJECT_ROOT / "data"),
+    )
 )
+
+RAW_DATA_DIRECTORY = DATA_DIRECTORY / "raw"
 
 
 def save_raw_tasks(tasks):

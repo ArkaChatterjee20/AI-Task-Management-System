@@ -1,4 +1,5 @@
-﻿# Git
+﻿
+# Git
 .git/
 .gitignore
 
@@ -14,22 +15,25 @@ __pycache__/
 .env
 .env.*
 !.env.example
+!.env.airflow.example
 .streamlit/secrets.toml
 
-# NLTK downloaded data (keep nltk_data_minimal)
+# NLTK downloaded data
 nltk_data/
 
 # Development and editor files
 .vscode/
 .idea/
-.pytest_cache/
-.coverage
-htmlcov/
 
 # Logs and temporary files
 *.log
 *.tmp
 *.bak
+
+# Test outputs
+.pytest_cache/
+.coverage
+htmlcov/
 
 # Local-only content
 data/raw/
@@ -37,3 +41,12 @@ Screenshots/
 *.ipynb
 .DS_Store
 Thumbs.db
+
+# Airflow runtime data
+airflow/logs/
+airflow/test-data/
+airflow/config/
+airflow/__pycache__/
+
+# Local AWS deployment configuration
+airflow-block-device.json

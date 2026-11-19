@@ -1,5 +1,7 @@
 
 import logging
+import os
+import re
 
 from datetime import datetime, timezone
 
@@ -9,6 +11,8 @@ from api_elt_pipeline.load.snowflake_connection import (
 
 logger = logging.getLogger(__name__)
 
+IDENTIFIER_PATTERN = r"[A-Za-z_][A-Za-z0-9_$]*"
+
 
 def load_tasks_to_snowflake(
     tasks,
@@ -17,6 +21,17 @@ def load_tasks_to_snowflake(
 ):
     """
     Load a batch into Snowflake RAW using batch-aware MERGE.
+
+    Configurable environment variables:
+
+        SNOWFLAKE_DATABASE
+        SNOWFLAKE_RAW_SCHEMA
+
+    Default RAW schema:
+        RAW
+
+    Isolated test RAW schema:
+        AIRFLOW_TEST_RAW
 
     Repeated sequential loads of the same batch do not
     insert duplicate TASK_ID records within that batch.
@@ -30,10 +45,63 @@ def load_tasks_to_snowflake(
         raise ValueError("Batch ID is required.")
 
     if not source_extracted_at:
-        raise ValueError("Source extraction timestamp is required.")
+        raise ValueError(
+            "Source extraction timestamp is required."
+        )
 
-    # Convert the source timestamp to UTC without timezone
-    # information because the Snowflake column is TIMESTAMP_NTZ.
+    # --------------------------------------------------
+    # 1. Read and validate database configuration
+    # --------------------------------------------------
+
+    database = os.getenv("SNOWFLAKE_DATABASE")
+
+    if not database:
+        raise ValueError(
+            "SNOWFLAKE_DATABASE is not configured."
+        )
+
+    if not re.fullmatch(
+        IDENTIFIER_PATTERN,
+        database,
+    ):
+        raise ValueError(
+            "Invalid Snowflake database name."
+        )
+
+    # --------------------------------------------------
+    # 2. Read and validate RAW schema configuration
+    # --------------------------------------------------
+
+    raw_schema = os.getenv(
+        "SNOWFLAKE_RAW_SCHEMA",
+        "RAW",
+    )
+
+    if not re.fullmatch(
+        IDENTIFIER_PATTERN,
+        raw_schema,
+    ):
+        raise ValueError(
+            "Invalid Snowflake RAW schema name."
+        )
+
+    target_table = (
+        f"{database}.{raw_schema}.TASKS_RAW"
+    )
+
+    temporary_table = (
+        f"{database}.{raw_schema}.TMP_TASKS_RAW"
+    )
+
+    logger.info(
+        "Snowflake RAW target: %s",
+        target_table,
+    )
+
+    # --------------------------------------------------
+    # 3. Normalize timestamps
+    # --------------------------------------------------
+
     source_timestamp = datetime.fromisoformat(
         source_extracted_at
     )
@@ -51,17 +119,31 @@ def load_tasks_to_snowflake(
     cursor = None
 
     try:
+
+        # --------------------------------------------------
+        # 4. Establish Snowflake connection
+        # --------------------------------------------------
+
         connection = get_snowflake_connection()
         cursor = connection.cursor()
 
-        # Create a session-specific temporary staging table.
-        cursor.execute("""
-            CREATE TEMPORARY TABLE TMP_TASKS_RAW
-            LIKE AI_TASK_MANAGEMENT_DB.RAW.TASKS_RAW
-        """)
+        # --------------------------------------------------
+        # 5. Create isolated temporary RAW table
+        # --------------------------------------------------
 
-        insert_query = """
-            INSERT INTO TMP_TASKS_RAW (
+        cursor.execute(
+            f"""
+            CREATE TEMPORARY TABLE {temporary_table}
+            LIKE {target_table}
+            """
+        )
+
+        # --------------------------------------------------
+        # 6. Insert extracted records into temporary table
+        # --------------------------------------------------
+
+        insert_query = f"""
+            INSERT INTO {temporary_table} (
                 USER_ID,
                 TASK_ID,
                 TITLE,
@@ -86,12 +168,24 @@ def load_tasks_to_snowflake(
             for task in tasks
         ]
 
-        cursor.executemany(insert_query, records)
+        cursor.executemany(
+            insert_query,
+            records,
+        )
 
-        merge_query = """
-            MERGE INTO AI_TASK_MANAGEMENT_DB.RAW.TASKS_RAW
-                AS target
-            USING TMP_TASKS_RAW AS source
+        logger.info(
+            "Inserted %s records into temporary RAW table.",
+            len(records),
+        )
+
+        # --------------------------------------------------
+        # 7. Merge into configured RAW target table
+        # --------------------------------------------------
+
+        merge_query = f"""
+            MERGE INTO {target_table} AS target
+
+            USING {temporary_table} AS source
 
             ON target.BATCH_ID = source.BATCH_ID
             AND target.TASK_ID = source.TASK_ID
@@ -119,11 +213,14 @@ def load_tasks_to_snowflake(
 
         cursor.execute(merge_query)
 
-        # Count records belonging to this batch.
+        # --------------------------------------------------
+        # 8. Verify records loaded for this batch
+        # --------------------------------------------------
+
         cursor.execute(
-            """
+            f"""
             SELECT COUNT(*)
-            FROM AI_TASK_MANAGEMENT_DB.RAW.TASKS_RAW
+            FROM {target_table}
             WHERE BATCH_ID = %s
             """,
             (batch_id,),
@@ -131,6 +228,10 @@ def load_tasks_to_snowflake(
 
         result = cursor.fetchone()
         batch_record_count = result[0]
+
+        # --------------------------------------------------
+        # 9. Commit transaction
+        # --------------------------------------------------
 
         connection.commit()
 
@@ -143,6 +244,7 @@ def load_tasks_to_snowflake(
         return batch_record_count
 
     except Exception:
+
         if connection:
             connection.rollback()
 
@@ -150,11 +252,17 @@ def load_tasks_to_snowflake(
             "Failed to load batch %s into Snowflake.",
             batch_id,
         )
+
         raise
 
     finally:
+
         if cursor:
             cursor.close()
 
         if connection:
             connection.close()
+
+            logger.info(
+                "Snowflake connection closed."
+            )
