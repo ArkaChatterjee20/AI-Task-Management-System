@@ -20,6 +20,7 @@ The application is deployed on AWS ECS Fargate and accessed through an Applicati
 - **Pipeline Monitoring:** Track extraction and loading runs, processing status, and pipeline execution history.
 - **REST API:** FastAPI backend providing application and ML pipeline endpoints.
 - **Database Integration:** PostgreSQL for application data and Snowflake for data engineering workflows.
+- **Workflow Orchestration:** Apache Airflow orchestrates ELT pipeline execution and end-to-end integration testing.
 - **Cloud Deployment:** Containerized frontend and backend deployed using AWS ECS Fargate.
 
 ## 🏗️ System Architecture
@@ -31,8 +32,9 @@ The application follows a modular architecture:
 3. **Machine Learning:** Python-based ML components perform task prediction.
 4. **Database:** PostgreSQL stores application data and prediction-related records.
 5. **Data Engineering:** Python-based ELT workflows extract, transform, and load data into Snowflake.
-6. **Containerization:** Docker packages the frontend and backend services.
-7. **Cloud Infrastructure:** AWS ECS Fargate hosts the application, with an Application Load Balancer routing incoming requests.
+6. **Workflow Orchestration:** Apache Airflow manages ELT execution and integration testing.
+7. **Containerization:** Docker packages the frontend, backend, and local Airflow services.
+8. **Cloud Infrastructure:** AWS ECS Fargate hosts the application, with an Application Load Balancer routing incoming requests.
 
 ## 🛠️ Technology Stack
 
@@ -45,9 +47,11 @@ The application follows a modular architecture:
 | Database | PostgreSQL |
 | Data Warehouse | Snowflake |
 | Data Engineering | Python, REST APIs, ELT |
+| Workflow Orchestration | Apache Airflow 3.4.0 |
 | Containerization | Docker, Docker Compose |
 | Cloud | AWS ECS Fargate, Amazon ECR, Application Load Balancer |
 | Version Control | Git, GitHub |
+| CI | GitHub Actions |
 
 ## 📂 Project Documentation
 
@@ -82,7 +86,7 @@ cd AI-Task-Management-System
 
 Create your local `.env` file using the example:
 
-```bash
+```powershell
 copy .env.example .env
 ```
 
@@ -112,6 +116,106 @@ To stop the application:
 docker compose down
 ```
 
+## 🔄 Local Apache Airflow Deployment
+
+Apache Airflow is used locally to orchestrate the ELT pipeline and execute end-to-end Snowflake integration tests.
+
+The Airflow environment runs separately from the existing AWS application deployment using Docker Compose.
+
+### Airflow Architecture
+
+- **Airflow API Server:** Provides the Airflow web interface.
+- **Airflow Scheduler:** Schedules and executes DAG tasks.
+- **DAG Processor:** Parses and processes DAG definitions.
+- **Airflow Metadata Database:** PostgreSQL stores Airflow metadata and execution information.
+- **Snowflake:** Stores raw, staging, and analytics data for ELT processing.
+
+### 1. Configure Airflow environment
+
+Create your local Airflow environment file:
+
+```powershell
+copy .env.airflow.example .env.airflow
+```
+
+Update `.env.airflow` with your own values, including:
+
+- Airflow PostgreSQL credentials.
+- Airflow Fernet and API security keys.
+- Snowflake account and authentication credentials.
+- Snowflake warehouse and database configuration.
+
+The example configuration uses isolated Snowflake schemas:
+
+- `AIRFLOW_TEST_RAW`
+- `AIRFLOW_TEST_STAGING`
+- `AIRFLOW_TEST_ANALYTICS`
+
+Use your own credentials and never commit `.env.airflow` to GitHub.
+
+### 2. Build and start Airflow
+
+```powershell
+docker compose --env-file .env.airflow -f docker-compose.airflow.yml build
+```
+
+Start the Airflow services:
+
+```powershell
+docker compose --env-file .env.airflow -f docker-compose.airflow.yml up -d
+```
+
+### 3. Access the Airflow UI
+
+Open the following address in your browser:
+
+**http://localhost:8080**
+
+This is a local-only address. It is accessible from the machine running Docker and is not a publicly hosted Airflow URL.
+
+### 4. Available Airflow DAGs
+
+| DAG | Responsibility |
+|---|---|
+| `ai_task_management_elt_dag` | Orchestrates the existing ELT pipeline. |
+| `ai_task_management_e2e_test_dag` | Executes isolated end-to-end Snowflake integration testing. |
+
+**Main ELT DAG:**
+
+- Executes the existing API-based ELT pipeline.
+- Handles extraction and loading.
+- Uses configurable local ELT storage.
+- Supports retries and execution monitoring.
+
+**End-to-End Integration Test DAG:**
+
+- Loads a synthetic test record into an isolated Snowflake raw schema.
+- Executes staging transformations.
+- Executes analytics transformations.
+- Validates the expected analytics result.
+
+### 5. Monitor Airflow services
+
+Check the Airflow containers:
+
+```powershell
+docker ps -a --filter "name=ai-task-airflow"
+```
+
+View scheduler logs:
+
+```powershell
+docker logs ai-task-airflow-scheduler
+```
+
+### 6. Stop Airflow
+
+```powershell
+docker compose --env-file .env.airflow -f docker-compose.airflow.yml down
+```
+
+This stops the local Airflow services without changing the existing AWS application deployment. Persistent Airflow metadata is retained unless its Docker volume is explicitly removed.
+
 ## ☁️ AWS Deployment
 
 The application is deployed using:
@@ -122,6 +226,8 @@ The application is deployed using:
 - **CloudWatch Logs:** Supports container log monitoring.
 
 The deployment architecture and sanitized ECS task definition examples are available in the repository.
+
+Apache Airflow currently runs locally through Docker Compose and is separate from the AWS-hosted application.
 
 ## 📈 Scalability Considerations
 
@@ -135,6 +241,7 @@ The system design includes considerations for supporting approximately 150 concu
 - Credentials and local deployment configurations are excluded from Git.
 - Sanitized configuration templates are provided for reference.
 - Production secrets should be managed securely and never committed to source control.
+- Airflow is bound to localhost for local development rather than exposed publicly.
 
 ## 👨‍💻 Author
 
@@ -147,7 +254,9 @@ Interested in Data Engineering, Machine Learning, Python, SQL, and Cloud Technol
 - GitHub: [ArkaChatterjee20](https://github.com/ArkaChatterjee20)
 
 ---
-## Demo Link - http://ai-task-alb-45721397.ap-south-1.elb.amazonaws.com
+
+## Demo Link
+
+http://ai-task-alb-45721397.ap-south-1.elb.amazonaws.com
 
 If you find this project interesting, consider giving the repository a ⭐ on GitHub.
-
