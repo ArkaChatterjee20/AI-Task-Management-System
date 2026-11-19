@@ -193,6 +193,32 @@ This is a local-only address. It is accessible from the machine running Docker a
 - Executes staging transformations.
 - Executes analytics transformations.
 - Validates the expected analytics result.
+- 
+### 4. Public Apache Airflow UI Demo
+
+A temporary public demo of the locally deployed Apache Airflow 3.4.0 environment is available through Cloudflare Quick Tunnel.
+
+**[Open Public Airflow Dashboard](https://massachusetts-xml-independence-thu.trycloudflare.com/dags)**
+
+**Available DAGs:**
+
+| DAG | Description |
+|---|---|
+| `ai_task_management_elt_dag` | Orchestrates the AI Task Management ELT pipeline. |
+| `ai_task_management_e2e_test_dag` | Executes end-to-end Snowflake integration testing. |
+
+**Demo Environment:**
+- Apache Airflow 3.4.0
+- Docker Compose
+- Local PostgreSQL metadata database
+- Cloudflare Quick Tunnel
+
+**Important Notes:**
+- This is a temporary public demo, not a permanently hosted Airflow service.
+- Access requires valid Airflow login credentials.
+- The local computer, Docker containers, internet connection, and Cloudflare tunnel must remain active.
+- The Cloudflare URL may change whenever the tunnel is restarted.
+- No Airflow administrator credentials or environment secrets are published in this repository.
 
 ### 5. Monitor Airflow services
 
@@ -215,17 +241,6 @@ docker compose --env-file .env.airflow -f docker-compose.airflow.yml down
 ```
 
 This stops the local Airflow services without changing the existing AWS application deployment. Persistent Airflow metadata is retained unless its Docker volume is explicitly removed.
-## Apache Airflow UI Demo
-
-The AI Task Management ELT pipeline is orchestrated using Apache Airflow 3.4.0.
-
-**Live Demo:** [Open Airflow Dashboard](https://massachusetts-xml-independence-thu.trycloudflare.com)
-
-### Available DAGs
-- `ai_task_management_elt_dag`
-- `ai_task_management_e2e_test_dag`
-
-**Note:** This is a temporary Cloudflare Quick Tunnel connected to a locally hosted Airflow instance. Availability depends on the local machine, Docker containers, and tunnel process being active. The URL may change when the tunnel restarts.
 
 ## ☁️ AWS Deployment
 
